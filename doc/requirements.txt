@@ -1,0 +1,25 @@
+Windows (post-its) like Sticky Notes in Windows and Stickies on Mac.
+
+Simple style selection for the text area, like in the mail apps. If
+possible in a seperate view, not in every post-it. Seperate style
+selection for notes containing code.
+
+Title area for post-its.  
+Color selection for post-its.
+
+Seperate view to manage all notes. Notes are arranged
+hierarchically. Like folders and files. Only a desired subset of the
+notes are displayed as post-its. Changes on notes are made via
+post-its. Its post-it window is opened when clicking a note. Post-its
+can be hiden.
+
+When opening the app, the post-its from previous session should appear
+at the same place.
+
+Synchronization:
+
+A database file should be spefied so that the user can move it or
+synchronize it with Google Drive like tool.
+
+The content of all the notes, and the color of each one when they are
+displayed should be synchronized. 

@@ -1,0 +1,40 @@
+MVC pattern will be used.
+Use the example in this website for the starting point:
+https://www.codeproject.com/Articles/25057/Simple-Example-of-MVC-Model-View-Controller-Design
+
+Two seperate databases. One that can be syncronized between computers
+with Google Drive like software, other not. The database controller
+will abstract the databases so that it will seem to the rest of the
+software that there is only one database. The synchornized database
+file should be only one file so that it is synchronized easily, and it
+should not locked by the software permenantly.
+
+Store the information about post-its when opening them so that they
+automatically reopen at start (not synchronized, the set of post-its
+that are displayed, their locations and sizes can be different in
+different computers).
+
+GUI must be cross-platform. Only minimal wrappers can be platform
+specific.
+
+GUI implentation alternatives:
+
+Qt: With qtools library from quicklisp (http://quickdocs.org/qtools/).
+
+Software packages and their modules:
+
+main
+
+controller
+
+view
+  post-it-view
+  note-manager-view
+  menu (only for receiving commands)
+
+model
+  note-manager
+  note
+  note-db-driver
+  
+gp-database
