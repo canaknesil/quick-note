@@ -38,3 +38,5 @@ model
   note-db-driver
   
 gp-database
+
+Further design specifications are in the source files as comments.
