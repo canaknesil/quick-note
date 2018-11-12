@@ -25,6 +25,9 @@
 
 (defvar *database-error-symbol* 'no-error
   "Interface functions set this, in case of error.")
+(defvar *database-sig-file-name* ".signiture")
+(defvar *database-sig* 534427522720282064455979
+  "Random number with 24 digits") 
 
 (defun set-error-and-return (sym ret-val)
   (setf *database-error-symbol* sym)
@@ -39,19 +42,28 @@ value inside cond statement."
 				    ,(third c))))
 	 (t ,@body)))
 
-;;; TODO
+(defun create-database-sig (path)
+  (with-open-file (file (merge-pathnames path *database-sig-file-name*)
+			:direction :output
+			:if-exists nil)
+    (print *database-sig* file)
+    t))
+
 (defun create-database-directory (path)
   "Creates the directory and the signiture file for a database."
-  path)
+  (cond
+    ((not (ensure-directories-exist path)) nil)
+    ((not (create-database-sig path)) nil)
+    (t t)))
 
-;;; database-ref structure Should store the directory and name of the
+;;; database-ref structure. Should store the directory and name of the
 ;;; database. This is the database object that will be returned to the
 ;;; user.
 
 (defun make-database-ref (path)
   path)
 
-;;; document object Should store the directory and name of the
+;;; document object. Should store the directory and name of the
 ;;; document.
 
 
@@ -61,16 +73,24 @@ value inside cond statement."
 ;;;; but the rest of the design specification. Documentations should
 ;;;; be written for each interface object.
 
+(defun get-database-error ()
+  "Returns the last occured error. To be called after an interface
+function returned an error value."
+  *database-error-symbol*)
+
 (defun create-database (directory name)
   "Creates and returns a database in 'directory' named 'name'. Sets
 the error parameter and returns nil in case of error."
   (let ((db-path (pathname-as-directory
-		  (merge-pathnames directory name))))
+		  (merge-pathnames name directory))))
     (cond-err-ret
-     (((not (directory-p directory)) 'no-such-directory nil)
-      ((directory-p db-path) 'directory-already-exists nil)
-      ((not (create-database-directory db-path)) 'error-creating-directory nil))
-     (make-database-ref db-path))))
+	(((not (directory-p (pathname-as-directory directory)))
+	  'no-such-directory nil)
+	 ((char= (aref name 0) #\.) 'database-name-starting-with-dot nil)
+	 ((directory-p db-path) 'directory-already-exists nil)
+	 ((not (create-database-directory db-path))
+	  'error-creating-directory nil))
+      (make-database-ref db-path))))
 	
 
 

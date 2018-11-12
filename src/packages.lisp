@@ -16,4 +16,5 @@
 (defpackage :canaknesil.quick-note-database
   (:use :common-lisp :com.gigamonkeys.pathnames)
   (:export
-   :create-database))
+   :create-database
+   :get-database-error))
