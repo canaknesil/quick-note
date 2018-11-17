@@ -42,12 +42,19 @@ value inside cond statement."
 				    ,(third c))))
 	 (t ,@body)))
 
+(defun get-sig-file-path (path)
+  (merge-pathnames path *database-sig-file-name*))
+
 (defun create-database-sig (path)
-  (with-open-file (file (merge-pathnames path *database-sig-file-name*)
+  "Returns t if success, returns nil the file already exists, generate
+error if directory does not exist."
+  (with-open-file (file (get-sig-file-path path)
 			:direction :output
 			:if-exists nil)
-    (print *database-sig* file)
-    t))
+    (if (not file) nil
+	(progn
+	  (print *database-sig* file)
+	  t))))
 
 (defun create-database-directory (path)
   "Creates the directory and the signiture file for a database."
@@ -55,6 +62,17 @@ value inside cond statement."
     ((not (ensure-directories-exist path)) nil)
     ((not (create-database-sig path)) nil)
     (t t)))
+
+(defun database-directory-p (path)
+  (with-open-file (file (get-sig-file-path path)
+			:direction :input
+			:if-does-not-exist nil)
+    (if (not file) nil
+	(eql *database-sig* (read file)))))
+
+(defun get-database-path (directory name)
+  (pathname-as-directory
+   (merge-pathnames name directory)))
 
 ;;; database-ref structure. Should store the directory and name of the
 ;;; database. This is the database object that will be returned to the
@@ -81,8 +99,7 @@ function returned an error value."
 (defun create-database (directory name)
   "Creates and returns a database in 'directory' named 'name'. Sets
 the error parameter and returns nil in case of error."
-  (let ((db-path (pathname-as-directory
-		  (merge-pathnames name directory))))
+  (let ((db-path (get-database-path directory name)))
     (cond-err-ret
 	(((not (directory-p (pathname-as-directory directory)))
 	  'no-such-directory nil)
@@ -90,8 +107,20 @@ the error parameter and returns nil in case of error."
 	 ((directory-p db-path) 'directory-already-exists nil)
 	 ((not (create-database-directory db-path))
 	  'error-creating-directory nil))
+	(make-database-ref db-path))))
+
+(defun get-database (directory name)
+  "Returns the database object for existing database. Sets the error
+parameter and returns nil in case of error."
+  (let ((db-path (get-database-path directory name)))
+    (cond-err-ret
+	(((not (directory-p (pathname-as-directory directory)))
+	  'no-such-directory nil)
+	 ((char= (aref name 0) #\.) 'database-name-starting-with-dot nil)
+	 ((not (directory-p db-path)) 'directory-does-not-exists nil)
+	 ((not (database-directory-p db-path))
+	  'not-a-database nil))
       (make-database-ref db-path))))
-	
 
 
 ;;; (delete-database directory name) First checks if it is a database
@@ -101,12 +130,7 @@ the error parameter and returns nil in case of error."
 ;;; actually removes a database directory. Returns t if successfull,
 ;;; nil if not.
 
-;;; (get-database directory name) Returns the database object. The
-;;; directory must exist. In case of error returns nil. This function
-;;; just creates an abstract pointer to the pysical database. The
-;;; operations on the database must performed via this object. There
-;;; is no need for writing the database because the database object
-;;; does not contain any information about the content.
+
 
 ;;; (sub-database-list database) Returns the list of nested databases.
 
