@@ -27,7 +27,8 @@
   "Interface functions set this, in case of error.")
 (defvar *database-sig-file-name* ".signiture")
 (defvar *database-sig* 534427522720282064455979
-  "Random number with 24 digits") 
+  "Random number with 24 digits")
+
 
 (defun set-error-and-return (sym ret-val)
   (setf *database-error-symbol* sym)
@@ -70,9 +71,29 @@ error if directory does not exist."
     (if (not file) nil
 	(eql *database-sig* (read file)))))
 
-(defun get-database-path (directory name)
+(defun create-database-path (directory name)
   (pathname-as-directory
    (merge-pathnames name directory)))
+
+(defun deleted-database-path (path n)
+  (pathname-as-directory
+   (merge-pathnames
+    (concatenate 'string
+		 ".deleted."
+		 (car (last (pathname-directory path)))
+		 "."
+		 (write-to-string n))
+    (pathname-as-file path))))
+
+(defun delete-database-with-n (old-path n)
+  "Renames the database top directory with the first available number
+starting from n."
+  (let ((new-path (deleted-database-path old-path n)))
+    (if (directory-p new-path)
+	(delete-database-with-n old-path (1+ n))
+	(rename-file (pathname-as-file old-path)
+		     (pathname-as-file new-path)))))
+		
 
 ;;; database-ref structure. Should store the directory and name of the
 ;;; database. This is the database object that will be returned to the
@@ -81,25 +102,30 @@ error if directory does not exist."
 (defun make-database-ref (path)
   path)
 
+(defun get-database-path (database)
+  database)
+
 ;;; document object. Should store the directory and name of the
 ;;; document.
 
 
 ;;;; INTERFACE
 
-;;;; The following comments are not documentation for the interface,
-;;;; but the rest of the design specification. Documentations should
-;;;; be written for each interface object.
-
 (defun get-database-error ()
   "Returns the last occured error. To be called after an interface
 function returned an error value."
   *database-error-symbol*)
 
+;;; create-database and get-database functions are only two function
+;;; that are used to interract with physical file system. Other
+;;; functions uses the database instances returned by these
+;;; functions. These two functions should check for any erronous
+;;; situation so that other function can manage databases without the
+;;; need of do all the checks.
 (defun create-database (directory name)
   "Creates and returns a database in 'directory' named 'name'. Sets
 the error parameter and returns nil in case of error."
-  (let ((db-path (get-database-path directory name)))
+  (let ((db-path (create-database-path directory name)))
     (cond-err-ret
 	(((not (directory-p (pathname-as-directory directory)))
 	  'no-such-directory nil)
@@ -112,7 +138,7 @@ the error parameter and returns nil in case of error."
 (defun get-database (directory name)
   "Returns the database object for existing database. Sets the error
 parameter and returns nil in case of error."
-  (let ((db-path (get-database-path directory name)))
+  (let ((db-path (create-database-path directory name)))
     (cond-err-ret
 	(((not (directory-p (pathname-as-directory directory)))
 	  'no-such-directory nil)
@@ -122,7 +148,8 @@ parameter and returns nil in case of error."
 	  'not-a-database nil))
       (make-database-ref db-path))))
 
-
+(defun delete-database (database)
+  (delete-database-with-n (get-database-path database) 0))
 ;;; (delete-database directory name) First checks if it is a database
 ;;; by looking at signiture file. Then changes its name to
 ;;; ".deleted.0.<old-name>". If a directory with the same name exists

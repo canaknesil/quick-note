@@ -1,49 +1,5 @@
 (in-package #:com.gigamonkeys.pathnames)
 
-(defun list-directory (dirname)
-  "Return a list of the contents of the directory named by dirname.
-Names of subdirectories will be returned in `directory normal
-form'. Unlike CL:DIRECTORY, LIST-DIRECTORY does not accept
-wildcard pathnames; `dirname' should simply be a pathname that
-names a directory. It can be in either file or directory form."
-  (when (wild-pathname-p dirname)
-    (error "Can only list concrete directory names."))
-
-  (let ((wildcard (directory-wildcard dirname)))
-
-    #+(or sbcl cmu lispworks)
-    ;; SBCL, CMUCL, and Lispworks return subdirectories in directory
-    ;; form just the way we want.
-    (directory wildcard)
-    
-    #+openmcl
-    ;; OpenMCl by default doesn't return subdirectories at all. But
-    ;; when prodded to do so with the special argument :directories,
-    ;; it returns them in directory form.
-    (directory wildcard :directories t)
-            
-    #+allegro
-    ;; Allegro normally return directories in file form but we can
-    ;; change that with the :directories-are-files argument.
-    (directory wildcard :directories-are-files nil)
-            
-    #+clisp
-    ;; CLISP has a particularly idiosyncratic view of things. But we
-    ;; can bludgeon even it into doing what we want.
-    (nconc 
-     ;; CLISP won't list files without an extension when :type is
-     ;; wild so we make a special wildcard for it.
-     (directory wildcard)
-     ;; And CLISP doesn't consider subdirectories to match unless
-     ;; there is a :wild in the directory component.
-     (directory (clisp-subdirectories-wildcard wildcard)))
-
-    #-(or sbcl cmu lispworks openmcl allegro clisp)
-    (error "list-directory not implemented")))
-
-
-
-
 (defun file-exists-p (pathname)
   "Similar to CL:PROBE-FILE except it always returns directory names
 in `directory normal form'. Returns truename which will be in
@@ -95,21 +51,6 @@ in `directory normal form'. Returns truename which will be in
     #-(or sbcl cmu lispworks openmcl allegro clisp)
     (error "list-directory not implemented"))
 
-(defun directory-wildcard (dirname)
-  (make-pathname 
-   :name :wild
-   :type #-clisp :wild #+clisp nil
-   :defaults (pathname-as-directory dirname)))
-
-#+clisp
-(defun clisp-subdirectories-wildcard (wildcard)
-  (make-pathname
-   :directory (append (pathname-directory wildcard) (list :wild))
-   :name nil
-   :type nil
-   :defaults wildcard))
-
-
 (defun directory-pathname-p (p)
   "Is the given pathname the name of a directory? This function can
 usefully be used to test whether a name returned by LIST-DIRECTORIES
@@ -123,9 +64,10 @@ form'."
      (not (component-present-p (pathname-type p)))
      p)))
 
-
-(defun file-pathname-p (p)
-  (unless (directory-pathname-p p) p))
+(defun directory-p (name)
+  "Is `name' the name of an existing directory."
+  (let ((truename (file-exists-p name)))
+    (and truename (directory-pathname-p name))))
 
 (defun pathname-as-directory (name)
   "Return a pathname reperesenting the given pathname in
@@ -146,6 +88,77 @@ component. Returns its argument if name and type are both nil or
        :type      nil
        :defaults pathname)
       pathname)))
+
+(defun directory-wildcard (dirname)
+  (make-pathname 
+   :name :wild
+   :type #-clisp :wild #+clisp nil
+   :defaults (pathname-as-directory dirname)))
+
+(defun list-directory (dirname)
+  "Return a list of the contents of the directory named by dirname.
+Names of subdirectories will be returned in `directory normal
+form'. Unlike CL:DIRECTORY, LIST-DIRECTORY does not accept
+wildcard pathnames; `dirname' should simply be a pathname that
+names a directory. It can be in either file or directory form."
+  (when (wild-pathname-p dirname)
+    (error "Can only list concrete directory names."))
+
+  (let ((wildcard (directory-wildcard dirname)))
+
+    #+(or sbcl cmu lispworks)
+    ;; SBCL, CMUCL, and Lispworks return subdirectories in directory
+    ;; form just the way we want.
+    (directory wildcard)
+    
+    #+openmcl
+    ;; OpenMCl by default doesn't return subdirectories at all. But
+    ;; when prodded to do so with the special argument :directories,
+    ;; it returns them in directory form.
+    (directory wildcard :directories t)
+            
+    #+allegro
+    ;; Allegro normally return directories in file form but we can
+    ;; change that with the :directories-are-files argument.
+    (directory wildcard :directories-are-files nil)
+            
+    #+clisp
+    ;; CLISP has a particularly idiosyncratic view of things. But we
+    ;; can bludgeon even it into doing what we want.
+    (nconc 
+     ;; CLISP won't list files without an extension when :type is
+     ;; wild so we make a special wildcard for it.
+     (directory wildcard)
+     ;; And CLISP doesn't consider subdirectories to match unless
+     ;; there is a :wild in the directory component.
+     (directory (clisp-subdirectories-wildcard wildcard)))
+
+    #-(or sbcl cmu lispworks openmcl allegro clisp)
+    (error "list-directory not implemented")))
+
+
+
+
+
+
+
+
+#+clisp
+(defun clisp-subdirectories-wildcard (wildcard)
+  (make-pathname
+   :directory (append (pathname-directory wildcard) (list :wild))
+   :name nil
+   :type nil
+   :defaults wildcard))
+
+
+
+
+
+(defun file-pathname-p (p)
+  (unless (directory-pathname-p p) p))
+
+
 
 (defun pathname-as-file (name)
   "Return a pathname reperesenting the given pathname in `file form',
@@ -181,10 +194,7 @@ pathnames as well."
            ((funcall test name) (funcall fn name)))))
     (walk (pathname-as-directory dirname))))
 
-(defun directory-p (name)
-  "Is `name' the name of an existing directory."
-  (let ((truename (file-exists-p name)))
-    (and truename (directory-pathname-p name))))
+
 
 (defun file-p (name)
   "Is `name' the name of an existing file, i.e. not a directory."

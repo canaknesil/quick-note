@@ -17,4 +17,6 @@
   (:use :common-lisp :com.gigamonkeys.pathnames)
   (:export
    :create-database
-   :get-database-error))
+   :get-database-error
+   :get-database
+   :delete-database))
