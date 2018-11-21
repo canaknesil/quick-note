@@ -65,6 +65,7 @@ error if directory does not exist."
     (t t)))
 
 (defun database-directory-p (path)
+  "Checks if the directory is a database."
   (with-open-file (file (get-sig-file-path path)
 			:direction :input
 			:if-does-not-exist nil)
@@ -76,6 +77,7 @@ error if directory does not exist."
    (merge-pathnames name directory)))
 
 (defun deleted-database-path (path n)
+  "Returns the renamed path."
   (pathname-as-directory
    (merge-pathnames
     (concatenate 'string
@@ -102,8 +104,12 @@ starting from n."
 (defun make-database-ref (path)
   path)
 
-(defun get-database-path (database)
+(defun get-database-ref-path (database)
   database)
+
+(defun get-database-ref-name (database)
+  (car (last (pathname-directory
+	 (get-database-ref-path database)))))
 
 ;;; document object. Should store the directory and name of the
 ;;; document.
@@ -149,28 +155,22 @@ parameter and returns nil in case of error."
       (make-database-ref db-path))))
 
 (defun delete-database (database)
-  (delete-database-with-n (get-database-path database) 0))
-;;; (delete-database directory name) First checks if it is a database
-;;; by looking at signiture file. Then changes its name to
-;;; ".deleted.0.<old-name>". If a directory with the same name exists
-;;; ".deleted.1.<old-name>" is used as name, and so on. It never
-;;; actually removes a database directory. Returns t if successfull,
-;;; nil if not.
+  "Deletes the database by not removing it but renaming it with a special name starting with a dot."
+  (delete-database-with-n (get-database-ref-path database) 0))
 
+(defun get-database-name (database)
+  (get-database-ref-name database))
 
+;;; (create-sub-database database sub-db-name)
 
-;;; (sub-database-list database) Returns the list of nested databases.
-
-;;; (create-sub-database database name)
-
-;;; (get-sub-database database name)
+;;; (get-sub-database database sub-db-name)
+;;; Can be also used to check if a sub database exists.
+;;; Add this to doc string
 
 ;;; (delete-sub-database database name)
 
-;;; (get-document-list database) Returns the documentes in the
-;;; database.
+;;; (sub-database-list database) Returns the list of nested databases.
 
-;;; (get-document database name)
 
 ;;; (create-document database name s-exp) Creates a document in
 ;;; 'directory' named 'name' containing 's-exp'. Directory should be a
@@ -178,6 +178,8 @@ parameter and returns nil in case of error."
 ;;; name exists returns 1, if another error occured returns another
 ;;; integer. 's-exp' should be wrapped by a container that has the
 ;;; signiture.
+
+;;; (get-document database name)
 
 ;;; (delete-document database name) First checks the document
 ;;; signiture and renames if to ".deleted.0.<old-name>". The integer
@@ -187,13 +189,14 @@ parameter and returns nil in case of error."
 
 ;;; (update-document database name s-exp)
 
-;;; (database-p database)
+;;; (get-document-list database) Returns the documentes in the
+;;; database.
 
-;;; (document-p document)
 
-;;; *database-error-symbol* This global variable is used to be set in
-;;; case of error. Default value is 'no-error. All the interface
-;;; function and macros should set it in case of error.
+
+
+
+
 
 
 
