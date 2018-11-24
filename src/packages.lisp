@@ -19,4 +19,5 @@
    :create-database
    :get-database-error
    :get-database
-   :delete-database))
+   :delete-database
+   :sub-database-list))

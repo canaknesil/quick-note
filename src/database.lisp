@@ -169,7 +169,19 @@ parameter and returns nil in case of error."
 
 ;;; (delete-sub-database database name)
 
-;;; (sub-database-list database) Returns the list of nested databases.
+(defun sub-database-list (database)
+  "Returns the list of nested databases."
+  (mapcar
+   #'(lambda (p) (make-database-ref p))
+   (remove-if-not
+    #'database-directory-p
+    (remove-if-not
+     #'directory-p
+     (directory
+      (make-pathname :defaults (get-database-ref-path database)
+		     :name :wild :type :wild))))))
+  
+
 
 
 ;;; (create-document database name s-exp) Creates a document in
