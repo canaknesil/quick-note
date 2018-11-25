@@ -16,8 +16,12 @@
 (defpackage :canaknesil.quick-note-database
   (:use :common-lisp :com.gigamonkeys.pathnames)
   (:export
-   :create-database
    :get-database-error
+   :create-database
    :get-database
    :delete-database
+   :get-database-name
+   :create-sub-database
+   :get-sub-database
+   :delete-sub-database
    :sub-database-list))

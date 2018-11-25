@@ -94,7 +94,7 @@ starting from n."
     (if (directory-p new-path)
 	(delete-database-with-n old-path (1+ n))
 	(rename-file (pathname-as-file old-path)
-		     (pathname-as-file new-path)))))
+		     (merge-pathnames (pathname-as-file new-path))))))
 		
 
 ;;; database-ref structure. Should store the directory and name of the
@@ -106,7 +106,6 @@ starting from n."
 
 (defun get-database-ref-path (database)
   database)
-
 (defun get-database-ref-name (database)
   (car (last (pathname-directory
 	 (get-database-ref-path database)))))
@@ -142,8 +141,9 @@ the error parameter and returns nil in case of error."
 	(make-database-ref db-path))))
 
 (defun get-database (directory name)
-  "Returns the database object for existing database. Sets the error
-parameter and returns nil in case of error."
+  "Returns the database object for existing database. Can be also used
+to check if the database exists. Sets the error parameter and returns
+nil in case of error."
   (let ((db-path (create-database-path directory name)))
     (cond-err-ret
 	(((not (directory-p (pathname-as-directory directory)))
@@ -159,27 +159,43 @@ parameter and returns nil in case of error."
   (delete-database-with-n (get-database-ref-path database) 0))
 
 (defun get-database-name (database)
+  "Returns the name of the database."
   (get-database-ref-name database))
 
-;;; (create-sub-database database sub-db-name)
 
-;;; (get-sub-database database sub-db-name)
-;;; Can be also used to check if a sub database exists.
-;;; Add this to doc string
+(defun create-sub-database (database sub-db-name)
+  "Creates and returns the sub-database in 'directory' named 'name'. Sets
+the error parameter and returns nil in case of error."
+  (create-database (get-database-ref-path database)
+		   sub-db-name))
+
+(defun get-sub-database (database sub-db-name)
+  "Returns the database object for existing sub-database. Can be also
+used to check if the database exists. Sets the error parameter and
+returns nil in case of error."
+  (get-database (get-database-ref-path database)
+		sub-db-name))
 
 ;;; (delete-sub-database database name)
+(defun delete-sub-database (database)
+  (delete-database database))
 
+;;; This function explicitly checks the name of the database and does
+;;; not include names starting with a dot.
 (defun sub-database-list (database)
   "Returns the list of nested databases."
   (mapcar
    #'(lambda (p) (make-database-ref p))
-   (remove-if-not
-    #'database-directory-p
-    (remove-if-not
-     #'directory-p
-     (directory
-      (make-pathname :defaults (get-database-ref-path database)
-		     :name :wild :type :wild))))))
+   (remove-if
+    #'(lambda (p)
+	(or
+	 (let ((name (car (last (pathname-directory p)))))
+	  (char= (aref name 0) #\.))
+	 (not (database-directory-p p))
+	 (not (directory-p p))))
+    (directory
+     (make-pathname :defaults (get-database-ref-path database)
+		    :name :wild :type :wild)))))))
   
 
 
