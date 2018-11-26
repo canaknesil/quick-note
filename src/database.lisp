@@ -195,7 +195,7 @@ returns nil in case of error."
 	 (not (directory-p p))))
     (directory
      (make-pathname :defaults (get-database-ref-path database)
-		    :name :wild :type :wild)))))))
+		    :name :wild :type :wild)))))
   
 
 
