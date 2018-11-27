@@ -25,4 +25,9 @@
    :get-sub-database
    :delete-sub-database
    :sub-database-list
-   :create-document))
+   :create-document
+   :get-document
+   :read-document
+   :update-document
+   :delete-document
+   :document-list))

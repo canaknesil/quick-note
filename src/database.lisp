@@ -88,6 +88,18 @@ error if directory does not exist."
 		 (write-to-string n))
     (pathname-as-file path))))
 
+(defun deleted-document-path (path n)
+  "Returns the renamed path."
+  (merge-pathnames
+   (concatenate 'string
+		".deleted."
+		(pathname-name path)
+		(let ((type (pathname-type path)))
+		  (if type (concatenate 'string "." type) ""))
+		"."
+		(write-to-string n))
+   path))
+
 (defun delete-database-with-n (old-path n)
   "Renames the database top directory with the first available number
 starting from n."
@@ -97,9 +109,17 @@ starting from n."
 	(rename-file (pathname-as-file old-path)
 		     (merge-pathnames (pathname-as-file new-path))))))
 
-(defun make-document-content (value)
-  (cons *document-sig* value))
-		
+(defun delete-document-with-n (old-path n)
+  (let ((new-path (deleted-document-path old-path n)))
+    (if (probe-file new-path)
+	(delete-database-with-n old-path (1+ n))
+	(rename-file old-path (merge-pathnames new-path)))))
+
+(defun write-document-content (value stream)
+  (print *document-sig* stream)
+  (print value stream)
+  (print 'kebab-tallrik stream)
+  value)
 
 ;;; database-ref structure. Should store the directory and name of the
 ;;; database. This is the database object that will be returned to the
@@ -125,11 +145,13 @@ starting from n."
   document)
 
 (defun get-document-ref-name (document)
-  (if (eql (pathname-type document) nil)
-      (pathname-name document)
-      (concatenate 'string
-		   (pathname-name document) "."
-		   (pathname-type document))))
+  (let ((path (get-document-ref-path document)))
+    (if (eql (pathname-type path) nil)
+	(pathname-name path)
+	(concatenate 'string
+		     (pathname-name path) "."
+		     (pathname-type path)))))
+
 
 ;;;; INTERFACE
 
@@ -172,7 +194,8 @@ nil in case of error."
       (make-database-ref db-path))))
 
 (defun delete-database (database)
-  "Deletes the database by not removing it but renaming it with a special name starting with a dot."
+  "Deletes the database by not removing it but renaming it with a
+special name starting with a dot."
   (delete-database-with-n (get-database-ref-path database) 0))
 
 (defun get-database-name (database)
@@ -227,25 +250,43 @@ exists, does not recreate it, sets the error and returns nil."
   (let ((file-path (merge-pathnames name
 				    (get-database-ref-path database))))
     (cond-err-ret
-	(((char= (aref name 0) #\.) 'database-name-starting-with-dot nil)
+	(((char= (aref name 0) #\.) 'document-name-starting-with-dot nil)
 	 ((probe-file file-path) 'document-already-exists nil))
-      (let ((document-ref (make-document-ref file-path))
-	    (doc-content (make-document-content value)))
-	(with-open-file (file file-path :direction :output)
-	  (print doc-content file))
-	document-ref))))
+      (with-open-file (file file-path :direction :output)
+	(write-document-content value file)
+      (make-document-ref file-path)))))
 	
+(defun get-document (database name)
+  "Returns the document object for existing document. Can be also used
+to check if the document exists. Sets the error parameter and returns
+nil in case of error."
+  (let ((file-path (merge-pathnames name
+				    (get-database-ref-path database))))
+    (cond-err-ret
+	(((char= (aref name 0) #\.) 'document-name-starting-with-dot nil)
+	 ((not (probe-file file-path)) 'document-does-not-exist nil))
+      (let ((signiture (with-open-file (file file-path :direction :input)
+			 (read file))))
+	(cond-err-ret
+	    (((not (eql signiture *document-sig*)) 'not-a-document nil))
+	  (make-document-ref file-path))))))
 
+(defun read-document (document)
+  "Returns the content of the document."
+  (with-open-file (file (get-document-ref-path document) :direction :input)
+    (read file) ; skip signiture
+    (read file)))
 
-;;; (get-document database name)
+(defun update-document (document value)
+  (with-open-file (file (get-document-ref-path document)
+			:direction :output
+			:if-exists :supersede)
+    (write-document-content value file)))
 
-;;; (delete-document document) First checks the document
-;;; signiture and renames if to ".deleted.0.<old-name>". The integer
-;;; can be changed if necessary.
-
-;;; (read-document document)
-
-;;; (update-document document value)
+(defun delete-document (document)
+  "Deletes the document by not removing it but renaming it with a
+special name starting with a dot."
+  (delete-document-with-n (get-document-ref-path document) 0))
 
 ;;; (document-list database) Returns the documentes in the
 ;;; database.
