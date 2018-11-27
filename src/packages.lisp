@@ -24,4 +24,5 @@
    :create-sub-database
    :get-sub-database
    :delete-sub-database
-   :sub-database-list))
+   :sub-database-list
+   :create-document))

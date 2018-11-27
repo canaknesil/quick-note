@@ -28,6 +28,7 @@
 (defvar *database-sig-file-name* ".signiture")
 (defvar *database-sig* 534427522720282064455979
   "Random number with 24 digits")
+(defvar *document-sig* *database-sig*)
 
 
 (defun set-error-and-return (sym ret-val)
@@ -95,6 +96,9 @@ starting from n."
 	(delete-database-with-n old-path (1+ n))
 	(rename-file (pathname-as-file old-path)
 		     (merge-pathnames (pathname-as-file new-path))))))
+
+(defun make-document-content (value)
+  (cons *document-sig* value))
 		
 
 ;;; database-ref structure. Should store the directory and name of the
@@ -106,6 +110,7 @@ starting from n."
 
 (defun get-database-ref-path (database)
   database)
+
 (defun get-database-ref-name (database)
   (car (last (pathname-directory
 	 (get-database-ref-path database)))))
@@ -113,6 +118,18 @@ starting from n."
 ;;; document object. Should store the directory and name of the
 ;;; document.
 
+(defun make-document-ref (path)
+  path)
+
+(defun get-document-ref-path (document)
+  document)
+
+(defun get-document-ref-name (document)
+  (if (eql (pathname-type document) nil)
+      (pathname-name document)
+      (concatenate 'string
+		   (pathname-name document) "."
+		   (pathname-type document))))
 
 ;;;; INTERFACE
 
@@ -196,28 +213,41 @@ returns nil in case of error."
     (directory
      (make-pathname :defaults (get-database-ref-path database)
 		    :name :wild :type :wild)))))
-  
 
 
+;;; create-document and get-document functions are only two function
+;;; that are used to interract with physical file system for
+;;; documents. Other functions uses the document instances returned by
+;;; these functions. These two functions should check for any erronous
+;;; situation so that other function can manage databases without the
+;;; need of do all the checks.
+(defun create-document (database name value)
+  "Creates a document with value stored in it. If the document already
+exists, does not recreate it, sets the error and returns nil."
+  (let ((file-path (merge-pathnames name
+				    (get-database-ref-path database))))
+    (cond-err-ret
+	(((char= (aref name 0) #\.) 'database-name-starting-with-dot nil)
+	 ((probe-file file-path) 'document-already-exists nil))
+      (let ((document-ref (make-document-ref file-path))
+	    (doc-content (make-document-content value)))
+	(with-open-file (file file-path :direction :output)
+	  (print doc-content file))
+	document-ref))))
+	
 
-;;; (create-document database name s-exp) Creates a document in
-;;; 'directory' named 'name' containing 's-exp'. Directory should be a
-;;; database. if successfull returns nil, if a document with the same
-;;; name exists returns 1, if another error occured returns another
-;;; integer. 's-exp' should be wrapped by a container that has the
-;;; signiture.
 
 ;;; (get-document database name)
 
-;;; (delete-document database name) First checks the document
+;;; (delete-document document) First checks the document
 ;;; signiture and renames if to ".deleted.0.<old-name>". The integer
 ;;; can be changed if necessary.
 
-;;; (read-document database name)
+;;; (read-document document)
 
-;;; (update-document database name s-exp)
+;;; (update-document document value)
 
-;;; (get-document-list database) Returns the documentes in the
+;;; (document-list database) Returns the documentes in the
 ;;; database.
 
 
