@@ -1,3 +1,5 @@
+;;;; To be loaded before testing database.lisp
+
 (load "packages.lisp")
 (load "pathnames.lisp")
 (load "database.lisp")

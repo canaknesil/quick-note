@@ -8,7 +8,12 @@
 
 (load-with-truename "pathnames.lisp")
 (load-with-truename "database.lisp")
+(load-with-truename "model.lisp")
+(load-with-truename "cl-view.lisp")
+(load-with-truename "controller.lisp")
 
 (defun main ()
   (format t "Hello World!~%"))
 
+(defun real-main ()
+  (start))
