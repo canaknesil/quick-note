@@ -1,27 +1,32 @@
 (in-package #:canaknesil.quick-note-database)
 
-;;;; General purpose database that is used to store s-expressions in
-;;;; files residing on a hierarchy of directories.
+;;;; General purpose database that is used to store common-lisp values
+;;;; in files (documents) residing in a hierarchy of directories
+;;;; (databases).
 
 ;;;; DESIGN SPECIFICATION
 
 ;;;; A database is represented by a top level directory, and documents
-;;;; are files under this top level directory. Sub-directories are
-;;;; nested databases. Documents contain s-expressions.
+;;;; are files under this directory. Sub-directories are nested
+;;;; databases. Documents contain common-lisp values.
 
 ;;;; There can be neither a database nor a document with a name
-;;;; starting with dot. These name are reserved.
+;;;; starting with a dot. These name are reserved.
 
 ;;;; In every database folder, a special signiture file named
 ;;;; ".signiture" is inserted. The content of every signiture file is
-;;;; a big integer that will stocastically prove that it is created by
+;;;; a big integer that will stocastically show that it is created by
 ;;;; this database software. It lowers the risk of interpreting other
 ;;;; directories in the system as databases. It does not provide
-;;;; security though.
+;;;; security.
 
-;;;; The s-expressions in every document file are wrapped by a
-;;;; signiture, an integer to prevent writing to files in the system
-;;;; that are not documents.
+;;;; Document files include a signiture along side the values that are
+;;;; stored to prevent corrupting other files in the system.
+
+;;;; Deleted databases and documents are not realy deleted, they are
+;;;; renamed with a reserved name.
+
+;;;; PRIVATE CODE
 
 (defvar *database-error-symbol* 'no-error
   "Interface functions set this, in case of error.")
@@ -37,7 +42,7 @@
 
 (defmacro cond-err-ret ((&rest conditions) &body body)
   "Used to simplify checking, error setting, and evaluating return
-value inside cond statement."
+value inside cond."
   `(cond ,@(loop for c in conditions
 	      collect `(,(first c) (set-error-and-return
 				    ,(second c)
@@ -45,11 +50,12 @@ value inside cond statement."
 	 (t ,@body)))
 
 (defun get-sig-file-path (path)
+  "Takes a directory path and append the signiture file name to it."
   (merge-pathnames path *database-sig-file-name*))
 
 (defun create-database-sig (path)
-  "Returns t if success, returns nil the file already exists, generate
-error if directory does not exist."
+  "Returns t if success, returns nil if the file already exists,
+generates error if directory does not exist."
   (with-open-file (file (get-sig-file-path path)
 			:direction :output
 			:if-exists nil)
@@ -74,8 +80,13 @@ error if directory does not exist."
 	(eql *database-sig* (read file)))))
 
 (defun create-database-path (directory name)
+  "Takes directory in which the database supposed to be and the name
+of the database, returns the path to the database."
   (pathname-as-directory
    (merge-pathnames name directory)))
+
+(defun get-directory-name (path)
+  (car (last (pathname-directory path))))
 
 (defun deleted-database-path (path n)
   "Returns the renamed path."
@@ -83,7 +94,7 @@ error if directory does not exist."
    (merge-pathnames
     (concatenate 'string
 		 ".deleted."
-		 (car (last (pathname-directory path)))
+		 (get-directory-name path)
 		 "."
 		 (write-to-string n))
     (pathname-as-file path))))
@@ -118,7 +129,7 @@ starting from n."
 (defun write-document-content (value stream)
   (print *document-sig* stream)
   (print value stream)
-  (print 'kebab-tallrik stream)
+  (print 'kebab-tallrik stream) ; joke :)
   value)
 
 ;;; database-ref structure. Should store the directory and name of the
@@ -132,11 +143,11 @@ starting from n."
   database)
 
 (defun get-database-ref-name (database)
-  (car (last (pathname-directory
-	 (get-database-ref-path database)))))
+  (get-directory-name
+   (get-database-ref-path database)))
 
 ;;; document object. Should store the directory and name of the
-;;; document.
+;;; document. This is the document that will be returned to the user.
 
 (defun make-document-ref (path)
   path)
@@ -144,13 +155,15 @@ starting from n."
 (defun get-document-ref-path (document)
   document)
 
+(defun get-file-name (path)
+  (if (eql (pathname-type path) nil)
+      (pathname-name path)
+      (concatenate 'string
+		   (pathname-name path) "."
+		   (pathname-type path))))
+
 (defun get-document-ref-name (document)
-  (let ((path (get-document-ref-path document)))
-    (if (eql (pathname-type path) nil)
-	(pathname-name path)
-	(concatenate 'string
-		     (pathname-name path) "."
-		     (pathname-type path)))))
+  (get-file-name (get-document-ref-path document)))
 
 
 ;;;; INTERFACE
@@ -216,27 +229,20 @@ returns nil in case of error."
   (get-database (get-database-ref-path database)
 		sub-db-name))
 
-;;; (delete-sub-database database name)
 (defun delete-sub-database (database)
   (delete-database database))
 
-;;; This function explicitly checks the name of the database and does
-;;; not include names starting with a dot.
 (defun sub-database-list (database)
   "Returns the list of nested databases."
-  (mapcar
-   #'(lambda (p) (make-database-ref p))
-   (remove-if
-    #'(lambda (p)
-	(or
-	 (let ((name (car (last (pathname-directory p)))))
-	  (char= (aref name 0) #\.))
-	 (not (database-directory-p p))
-	 (not (directory-p p))))
-    (directory
-     (make-pathname :defaults (get-database-ref-path database)
-		    :name :wild :type :wild)))))
-
+  (remove-if
+   #'(lambda (d) (eql d nil))
+   (mapcar
+    #'(lambda (p) (get-database database (get-directory-name p)))
+    (remove-if-not
+     #'directory-p
+     (directory
+      (make-pathname :defaults (get-database-ref-path database)
+		     :name :wild :type :wild))))))
 
 ;;; create-document and get-document functions are only two function
 ;;; that are used to interract with physical file system for
@@ -288,14 +294,16 @@ nil in case of error."
 special name starting with a dot."
   (delete-document-with-n (get-document-ref-path document) 0))
 
-;;; (document-list database) Returns the documentes in the
-;;; database.
-
-
-
-
-
-
-
-
+(defun document-list (database)
+  "Returns the list of documents in the database."
+  (remove-if
+   #'(lambda (d) (eql d nil))
+   (mapcar
+    #'(lambda (p) (get-document database (get-file-name p)))
+    (remove-if-not
+     #'file-p
+     (directory
+      (make-pathname :defaults (get-database-ref-path database)
+		     :name :wild :type :wild))))))
+	     
 
