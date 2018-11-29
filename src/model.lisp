@@ -4,10 +4,11 @@
 
 ;;;; TEMPLETE
 
-(defvar *text* "initial-text")
+;; (defvar *text* "initial-text")
 
-(defun set-text (text)
-  (setf *text* text))
+;; (defun set-text (text)
+;;   (setf *text* text))
 
-(defun get-text ()
-  *text*)
+;; (defun get-text ()
+;;   *text*)
+

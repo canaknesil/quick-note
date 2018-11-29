@@ -1,5 +1,4 @@
-#|
 
-Note data structure.
+;;;; Note data structure.
 
-|#
+

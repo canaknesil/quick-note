@@ -4,16 +4,19 @@
 (defun load-with-truename (path)
   (load (merge-pathnames path *load-truename*)))
 
-(load-with-truename "packages.lisp")
+(defun load-list (list)
+  (mapcar #'(lambda (p) (load-with-truename p)) list))
 
-(load-with-truename "pathnames.lisp")
-(load-with-truename "database.lisp")
-(load-with-truename "model.lisp")
-(load-with-truename "cl-view.lisp")
-(load-with-truename "controller.lisp")
+(load-list
+ '("packages.lisp"
+   "pathnames.lisp"
+   "database.lisp"
+   "note.lisp"
+   "db-controller.lisp"
+   "model.lisp"
+   "cl-view.lisp"
+   "view/note-manager-view.lisp"
+   "controller.lisp"))
 
 (defun main ()
-  (format t "Hello World!~%"))
-
-(defun real-main ()
-  (start))
+  (canaknesil.quick-note-view:launch-note-manager))

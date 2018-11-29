@@ -31,3 +31,10 @@
    :update-document
    :delete-document
    :document-list))
+
+;;; For qtools
+(ql:quickload '(qtools qtcore qtgui))
+
+(defpackage :canaknesil.quick-note-view
+  (:use :cl+qt)
+  (:export :launch-note-manager))
