@@ -32,9 +32,26 @@
    :delete-document
    :document-list))
 
-;;; For qtools
-(ql:quickload '(qtools qtcore qtgui))
+(defpackage :canaknesil.quick-note-db-controller
+  (:use :common-lisp
+	:com.gigamonkeys.pathnames
+	:canaknesil.quick-note-database)
+  (:export :to-do-db-controller))
 
-(defpackage :canaknesil.quick-note-view
-  (:use :cl+qt)
-  (:export :launch-note-manager))
+(defpackage :canaknesil.quick-note-model
+  (:use :common-lisp
+	:canaknesil.quick-note-db-controller)
+  (:export
+   :to-do-model))
+
+(defpackage :canaknesil.quick-note-ipc-back-end
+  (:use :common-lisp)
+  (:export
+   :to-do-ipc-back-end))
+
+(defpackage :canaknesil.quick-note-controller
+  (:use :common-lisp
+	:canaknesil.quick-note-model
+	:canaknesil.quick-note-ipc-back-end)
+  (:export
+   :to-do-controller))

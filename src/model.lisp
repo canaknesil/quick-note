@@ -1,3 +1,4 @@
+(in-package :canaknesil.quick-note-model)
 
 ;;;; Model of MVC design.
 ;;;; The brain of quick-note.

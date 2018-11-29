@@ -20,6 +20,10 @@ specific.
 GUI implentation alternatives:
 
 Qt: With qtools library from quicklisp (http://quickdocs.org/qtools/).
+PAINFULL!!! Tried and hated. Need to write lisp thinking C++.
+
+Qt: View in a seperate process as native qt (C++). Inter-process
+communication between view and controller.
 
 Software packages and their modules:
 

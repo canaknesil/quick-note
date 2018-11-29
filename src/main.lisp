@@ -14,9 +14,8 @@
    "note.lisp"
    "db-controller.lisp"
    "model.lisp"
-   "cl-view.lisp"
-   "view/note-manager-view.lisp"
+   "ipc-back-end.lisp"
    "controller.lisp"))
 
 (defun main ()
-  (canaknesil.quick-note-view:launch-note-manager))
+  (format t "Hello world!~%"))

@@ -1,3 +1,4 @@
+(in-package :canaknesil.quick-note-db-controller)
 
 ;;;; Part of the 'model' in MVC design.
 
