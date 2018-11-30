@@ -39,7 +39,11 @@
   (:export
    :storable
    :store2db
-   :load2db))
+   :load-from-db
+   :get-synchronized-data
+   :get-non-synchronized-data
+   :set-synchronized-data
+   :set-non-synchronized-data))
 
 (defpackage :canaknesil.quick-note-model
   (:use :common-lisp
