@@ -36,13 +36,16 @@
   (:use :common-lisp
 	:com.gigamonkeys.pathnames
 	:canaknesil.quick-note-database)
-  (:export :to-do-db-controller))
+  (:export
+   :storable
+   :store2db
+   :load2db))
 
 (defpackage :canaknesil.quick-note-model
   (:use :common-lisp
 	:canaknesil.quick-note-db-controller)
   (:export
-   :to-do-model))
+   :note))
 
 (defpackage :canaknesil.quick-note-ipc-back-end
   (:use :common-lisp)
