@@ -33,7 +33,7 @@
 (defgeneric load-from-db (storable)
   (:documentation "Load instance from quick-note-database."))
 
-(defgeneric get-synchonized-data (storable)
+(defgeneric get-synchronized-data (storable)
   (:documentation
    "To be overriden by subclasses. Every subclass should return data
 to be stored and synchronized between computers."))
@@ -58,15 +58,32 @@ during loading."))
 
 ;;;; MORE PRIVATE CODE
 
+(defun print-storable-info (s sync-data non-sync-data type)
+  (format t "~a following storable:
+name: ~a
+hierarchy: ~a
+synchronized data:
+~a
+non-synchronized data:
+~a~%"
+	  (cond ((eql type 'store) "Storing")
+		((eql type 'load) "Loading")
+		(t "Storing/Loading"))
+	  (name s) (hierarchy s) sync-data non-sync-data))
+
 (defmethod store2db ((s storable))
-  ;; TODO
-  (format t "Storing following object: (NOT IMPLEMENTED YET)~%~a~%"
-	  s))
+  (let ((sync-data (get-synchronized-data s))
+	(non-sync-data (get-non-synchronized-data s)))
+    (print-storable-info s sync-data non-sync-data 'store)
+    ;; TODO: Store data
+    ))
 
 (defmethod load-from-db ((s storable))
-  ;; TODO
-  (format t "Loading following object: (NOT IMPLEMENTED YET)~%~a~%"
-	  s))
+  (let ((sync-data (list "Title" "Content." 'orange)) ; TODO: Fetch data
+	(non-sync-data (list (cons 1 2) (cons 3 4)))) ; TODO: Fetch data
+    (print-storable-info s sync-data non-sync-data 'load)
+    (set-synchronized-data s sync-data)
+    (set-non-synchronized-data s non-sync-data)))
 
 (defmethod get-synchronized-data ((s storable))
   'synchronized-data-from-storable-superclass)

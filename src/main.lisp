@@ -11,8 +11,8 @@
  '("packages.lisp"
    "pathnames.lisp"
    "database.lisp"
-   "note.lisp"
    "db-controller.lisp"
+   "note.lisp"
    "model.lisp"
    "ipc-back-end.lisp"
    "controller.lisp"))
