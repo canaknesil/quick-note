@@ -38,6 +38,7 @@
 	:canaknesil.quick-note-database)
   (:export
    :storable
+   :name :hierarchy
    :store2db
    :load-from-db
    :get-synchronized-data

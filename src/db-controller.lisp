@@ -15,7 +15,12 @@
 ;;;; This module shouldn't be specific to storing notes, it should be
 ;;;; used to store any kind of information to the databases.
 
+
 ;;;; PRIVATE CODE
+
+;;;; For now thinking that more than one set of databases will not be
+;;;; used simultaneously. If in the future that changes, classes
+;;;; should be used rather than global variables.
 
 (defvar *synchronized-db* nil) ; database object from database.lisp
 (defvar *non-synchronized-db* nil)
@@ -24,6 +29,19 @@
 (defparameter *non-synchronized-db-name*
   "quick-note-non-synchronized-db")
 
+(defun get-db-with-hierarchy (db hierarchy)
+  (if (eql hierarchy nil) db
+      (let ((sub-db (get-sub-database db (car hierarchy))))
+	(if sub-db
+	    (get-db-with-hierarchy sub-db (cdr hierarchy))
+	    nil))))
+
+(defun get-doc-with-hierarchy (db hierarchy doc-name)
+  (let* ((db (get-db-with-hierarchy db hierarchy))
+	 (doc (get-document db doc-name)))
+    (if doc doc
+	(create-document db doc-name 'uninitialized-document-content))))
+  
 
 ;;;; INTERFACE
 
@@ -110,19 +128,43 @@ non-synchronized data:
 		(t "Storing/Loading"))
 	  (name s) (hierarchy s) sync-data non-sync-data))
 
-(defmethod store2db ((s storable))
-  (let ((sync-data (get-synchronized-data s))
-	(non-sync-data (get-non-synchronized-data s)))
-    (print-storable-info s sync-data non-sync-data 'store)
-    ;; TODO: Store data
-    ))
+(defun check-if-storable-or-loadable (s)
+  (cond
+    ((not (and *synchronized-db* *non-synchronized-db*))
+     (format t "Databases are not set !!!~%") nil)
+    ((not (name s))
+     (format t "Name of the storable is not set !!!~%") nil)
+    (t t)))
 
+(defmethod store2db ((s storable))
+  (when (check-if-storable-or-loadable s)
+    (let ((sync-data (get-synchronized-data s))
+	  (non-sync-data (get-non-synchronized-data s))
+	  (sync-doc (get-doc-with-hierarchy *synchronized-db*
+					    (hierarchy s)
+					    (name s)))
+	  (non-sync-doc (get-doc-with-hierarchy *non-synchronized-db*
+						(hierarchy s)
+						   (name s))))
+      (print-storable-info s sync-data non-sync-data 'store)
+      (update-document sync-doc sync-data)
+      (update-document non-sync-doc non-sync-data))))
+
+;; TODO
+;; In case synchronized database has been changed, non-synchronized
+;; database should be changed accordingly. If there is an addition
+;; in synchronized database, replicate it in non-synchronized
+;; database with default values. If there is a deletion, do-not
+;; touch to non-synchronized database. Read first the synchronized
+;; database, non-existing data on synchronized database can be
+;; assumed non-existing in non-synchronized database.
 (defmethod load-from-db ((s storable))
-  (let ((sync-data (list "Title" "Content." 'orange)) ; TODO: Fetch data
-	(non-sync-data (list (cons 1 2) (cons 3 4)))) ; TODO: Fetch data
-    (print-storable-info s sync-data non-sync-data 'load)
-    (set-synchronized-data s sync-data)
-    (set-non-synchronized-data s non-sync-data)))
+  (when (check-if-storable-or-loadable s)
+    (let ((sync-data (list "Title" "Content." 'orange)) ; TODO: Fetch data
+	  (non-sync-data (list (cons 1 2) (cons 3 4)))) ; TODO: Fetch data
+      (print-storable-info s sync-data non-sync-data 'load)
+      (set-synchronized-data s sync-data)
+      (set-non-synchronized-data s non-sync-data))))
 
 (defmethod get-synchronized-data ((s storable))
   'synchronized-data-from-storable-superclass)

@@ -2,6 +2,8 @@
 (use-package :canaknesil.quick-note-db-controller)
 (use-package :canaknesil.quick-note-model)
 
+(in-package :canaknesil.quick-note-model)
+
 (defvar *note*
   (make-instance 'note
 		 :title "Shopping List"
