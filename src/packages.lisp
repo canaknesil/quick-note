@@ -43,7 +43,11 @@
    :get-synchronized-data
    :get-non-synchronized-data
    :set-synchronized-data
-   :set-non-synchronized-data))
+   :set-non-synchronized-data
+   :set-synchronized-db
+   :set-non-synchronized-db
+   :create-synchronized-db
+   :create-non-synchronized-db))
 
 (defpackage :canaknesil.quick-note-model
   (:use :common-lisp

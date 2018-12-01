@@ -17,6 +17,14 @@
 
 ;;;; PRIVATE CODE
 
+(defvar *synchronized-db* nil) ; database object from database.lisp
+(defvar *non-synchronized-db* nil)
+
+(defparameter *synchronized-db-name* "quick-note-synchronized-db")
+(defparameter *non-synchronized-db-name*
+  "quick-note-non-synchronized-db")
+
+
 ;;;; INTERFACE
 
 (defclass storable ()
@@ -54,6 +62,37 @@ loading."))
    "To be overriden by subclasses. Every subclass should install the
 data which is not synchronized between computers to the instance
 during loading."))
+
+;;; For now these four function are repetitive.
+(defun set-synchronized-db (path)
+  "Sets the existing synchronized database in the given
+directory. Returns t if successful, nil if not."
+  (let ((db (get-database path *synchronized-db-name*)))
+    (if db (progn (setf *synchronized-db* db) t)
+	nil)))
+	
+(defun set-non-synchronized-db (path)
+  "Sets the existing non-synchronized database in the given
+directory. Returns t if successful, nil if not."
+  (let ((db (get-database path *non-synchronized-db-name*)))
+    (if db (progn (setf *non-synchronized-db* db) t)
+	nil)))
+
+(defun create-synchronized-db (path)
+  "Creates the non-existing synchronized database in the given
+directory. Returns t if successfull, nil if not."
+  (if (get-database path *synchronized-db-name*) nil
+      (progn
+	(create-database path *synchronized-db-name*)
+	(set-synchronized-db path))))
+
+(defun create-non-synchronized-db (path)
+  "Creates the non-existing non-synchronized database in the given
+directory. Returns t if successfull, nil if not."
+  (if (get-database path *non-synchronized-db-name*) nil
+      (progn
+	(create-database path *non-synchronized-db-name*)
+	(set-non-synchronized-db path))))
 
 
 ;;;; MORE PRIVATE CODE
