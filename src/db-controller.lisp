@@ -48,10 +48,16 @@
 (defclass storable ()
   ((name :accessor name
 	 :initarg :name
-	 :initform nil) ; string
+	 :initform nil
+	 :documentation
+	 "Name string used to store the storable in the database. 
+Name and hierarchy combination is unique in a database.") ; string
    (hierarchy :accessor hierarchy
 	      :initarg :hierarchy
-	      :initform nil))) ; list of strings
+	      :initform nil
+	      :documentation
+	      "List of string that represent hierarchy in the database.
+Name and hierarchy combination is unique in a database."))) ; list of strings
 
 (defgeneric store2db (storable)
   (:documentation "Store instance to the quick-note database."))
@@ -61,27 +67,36 @@
 
 (defgeneric get-synchronized-data (storable)
   (:documentation
-   "To be overriden by subclasses. Every subclass should return data
-to be stored and synchronized between computers."))
+   "To be overriden by subclasses. This method is called while storing
+synchronized data. With this method every subclass should return data
+to be stored and synchronized between computers. If there is no data
+ment to be synchronized, this method may not be overridden."))
 
 (defgeneric get-non-synchronized-data (storable)
   (:documentation
-   "To be overriden by subclasses. Every subclass should return data
-to be stored but not synchronized between computers."))
+   "To be overriden by subclasses. This method is called while storing
+non-synchronized data. With this method every subclass should return
+data to be stored and but not synchronized between computers. If there
+is no data that will not be synchronized, this method may not be
+overridden."))
 
 (defgeneric set-synchronized-data (storable data)
   (:documentation
-   "To be overriden by subclasses. Every subclass should install the
+   "To be overriden by subclasses. This method is called while loading
+synchronized data. With this method every subclass should install the
 data which is synchronized between computers to the instance during
-loading."))
+loading. If there is no data ment to be synchronized, this method may
+not be overriden."))
 
 (defgeneric set-non-synchronized-data (storable data)
   (:documentation
-   "To be overriden by subclasses. Every subclass should install the
-data which is not synchronized between computers to the instance
-during loading."))
+   "To be overriden by subclasses. This method is called while loading
+non-synchronized data. With this method every subclass should install
+the data which is not synchronized between computers to the instance
+during loading. If there is no data that will not be synchronized,
+this method may not be overriden."))
 
-;;; For now these four function are repetitive.
+;;; Note: These four function are repetitive. Bad coding :(
 (defun set-synchronized-db (path)
   "Sets the existing synchronized database in the given
 directory. Returns t if successful, nil if not."
@@ -150,32 +165,41 @@ non-synchronized data:
       (update-document sync-doc sync-data)
       (update-document non-sync-doc non-sync-data))))
 
-;; TODO
-;; In case synchronized database has been changed, non-synchronized
-;; database should be changed accordingly. If there is an addition
-;; in synchronized database, replicate it in non-synchronized
-;; database with default values. If there is a deletion, do-not
-;; touch to non-synchronized database. Read first the synchronized
-;; database, non-existing data on synchronized database can be
-;; assumed non-existing in non-synchronized database.
+;; First, the synchronized database is read. Non-existing data on
+;; synchronized database is assumed also non-existing in
+;; non-synchronized database. If data exist in synchronized database
+;; but not in non-synchronized database, only load the synchronized
+;; data.
 (defmethod load-from-db ((s storable))
   (when (check-if-storable-or-loadable s)
-    (let ((sync-data (list "Title" "Content." 'orange)) ; TODO: Fetch data
-	  (non-sync-data (list (cons 1 2) (cons 3 4)))) ; TODO: Fetch data
-      (print-storable-info s sync-data non-sync-data 'load)
-      (set-synchronized-data s sync-data)
-      (set-non-synchronized-data s non-sync-data))))
+    (let ((sync-doc (get-doc-with-hierarchy *synchronized-db*
+					    (hierarchy s)
+					    (name s)))
+	  (non-sync-doc (get-doc-with-hierarchy *non-synchronized-db*
+						(hierarchy s)
+						(name s))))
+      (if (not sync-doc) (format t "Storable is not in the database!!!~%")
+	  (let ((sync-data (read-document sync-doc))
+		(non-sync-data (if non-sync-doc
+				   (read-document non-sync-doc)
+				   'no-non-synchronized-data)))
+	    (print-storable-info s sync-data non-sync-data 'load)
+	    (set-synchronized-data s sync-data)
+	    (if non-sync-doc
+		(set-non-synchronized-data s (read-document non-sync-doc))))))))
+		
+
 
 (defmethod get-synchronized-data ((s storable))
-  'synchronized-data-from-storable-superclass)
+  'synchronized-data-from-storable-baseclass)
 
 (defmethod get-non-synchronized-data ((s storable))
-  'non-synchronized-data-from-storable-superclass)
+  'non-synchronized-data-from-storable-base-class)
 
 (defmethod set-synchronized-data ((s storable) data)
   (format t "Nothing to do with the stored synchronized data in
-storable superclass: ~%~a~%" data))
+storable base-class: ~%~a~%" data))
 
 (defmethod set-non-synchronized-data ((s storable) data)
   (format t "Nothing to do with the stored non-synchronized data in
-storable superclass: ~%~a~%" data))
+storable base-class: ~%~a~%" data))

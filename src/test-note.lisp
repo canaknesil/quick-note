@@ -1,4 +1,5 @@
 (load (merge-pathnames "main.lisp" *load-truename*))
+(use-package :canaknesil.quick-note-database)
 (use-package :canaknesil.quick-note-db-controller)
 (use-package :canaknesil.quick-note-model)
 
